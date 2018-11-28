@@ -1,0 +1,74 @@
+proc CheckTConnection {} {
+	
+	puts "=========CHECK T-CONECTION=================="
+	*nodecleartempmark 
+	
+	# GET ALL SOLID COMPONENT
+	if {1} {
+	
+	
+	::macroShowOnly3dELEMS;
+	
+	*createmark components 1 "displayed";
+	set allSolidComp [hm_getmark comp 1];
+	set failComp {};
+
+
+	}
+	if {1} {
+
+	# CHECK T-CONECTION FOR EACH COMP
+		foreach comp $allSolidComp {
+
+
+			if {[hm_entityinfo exist comp ^faces -byname]} {
+				*facesdelete;
+			}
+			
+			*createmark components 1 $comp;
+			*findfaces components 1
+			
+			*createmark components 1 "^faces"
+			*findedges1 components 1 1 0 0 30
+			
+			#record id of FAIL comp;
+			if {1} {
+				if {[hm_entityinfo exist comp ^edges -byname]} {
+					lappend failComp $comp;
+				}
+			}
+			
+			*deleteedges
+			*facesdelete;
+		}
+	}
+	# INFORM TO USER
+
+	if {1} {
+
+		if {[llength $failComp] != 0} {
+			puts "[llength $failComp] COMPONENT HAVE T-CONECTION";
+			
+			*clearmarkall 1;
+			eval *createmark comp 1 $failComp;
+			*isolateentitybymark 1
+			hm_viewfit
+			*saveviewmask "T-CONECTION CHECK";
+			
+		} else {
+		
+			#puts "=========CHECK T-CONECTION=================="
+			puts "DON'T HAVE T-CONECTION IN SOLID COMPS";
+			#puts "==========FINISHED=========================="
+			::macroONALLELEMS;
+			*unmaskall2;
+			
+		}
+	}
+	puts "==========FINISHED=========================="
+	
+	
+}
+
+CheckTConnection;
+*clearmarkall 1; *clearmarkall 2;
