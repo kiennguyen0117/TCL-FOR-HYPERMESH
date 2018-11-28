@@ -1,0 +1,35 @@
+set string {
+
+*text()
+  *string("1      8      16      24      32      40")
+  *end()
+*output()
+
+*nodes()
+  *before()
+    *string("NODE DATA")
+    *end()
+  *format()
+    *string("NODE    ")
+    *field(integer,id,18)
+    *field(real,x,18)
+    *field(real,y,18)
+    *field(real,z,18)
+    //*string("*")
+    *end()
+  *after()
+    *string("END NODES")
+    *end()
+*output()
+
+}
+
+set address [open check.tpl w+]
+
+puts $address $string;
+ close $address;
+
+
+*usercheck check.tpl check.txt 0;
+
+file delete check.tpl;
