@@ -1,0 +1,10 @@
+proc ClearOrphanNodes {} {
+	puts "=========CLEAR ORPHAN NODES=================="
+	*createmark nodes 1 "all"
+	*nodemarkaddtempmark 1
+	*nodecleartempmark 
+	*clearmarkall 1;
+	puts "==========FINISHED=========================="
+}
+ClearOrphanNodes;
+
