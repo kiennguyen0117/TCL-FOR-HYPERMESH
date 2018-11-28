@@ -1,0 +1,76 @@
+proc CheckWeldEquivalence {} {
+	puts "=========CHECK WELD EQUIVALENCE=================="
+
+	*clearmarkall 1; *clearmarkall 2;
+
+	*displaycollectorwithfilter components "all" "" 1 0
+
+	*unmaskall2;
+	# FIND SHARED NODE FOR ALL COMP;
+		*createmark comp 1 "all";
+
+		*findbetween nodes components 1 0 0 2; #SAVE SHARED NODES TO MARK 2
+
+		set nodeAll [hm_getmark nodes 2];
+
+		set nameAll [hm_entitylist comp name];
+		
+		set weldName "";
+
+	# FIND WELD COMPONENT USING REGULAR EXPRESSION
+
+		foreach name $nameAll {
+
+			
+			set cond [regexp {.*PSO_WELD$} $name nameOfWeld sub1];
+			
+			if {$cond == 1} { 
+			
+				set weldName $name;
+			break;}
+		}
+
+	# HIDE COMP WELD AND CHECK SHARED NODE AGAIN
+		
+		
+
+		*clearmarkall 1; *clearmarkall 2;
+		
+		*createmark node 1 "by comp" $weldName;
+		
+		set weldNode [hm_getmark nodes 1];
+		
+		eval *createmark nodes 1 $weldNode;
+		eval *createmark nodes 2 $nodeAll;
+		
+		*markintersection nodes 1 nodes 2;
+		
+		set sharedNode [hm_getmark nodes 1];
+		set numOfSharedNode [llength $sharedNode];
+		
+		set flag 0;
+		set nodeList {};;
+		set count 0;
+		foreach node1 $weldNode {
+			if {[lsearch $sharedNode $node1] == -1} {
+				lappend nodeList $node1;
+				incr count;
+				set flag 1;
+			}
+		}
+		*clearmarkall 1; *clearmarkall 2
+		eval *createmark nodes 1 $nodeList;
+		*nodemarkaddtempmark 1;
+		*clearmarkall 1; *clearmarkall 2
+
+
+		
+		if {$flag == 1} {
+			puts "THE EQUIVALENCE FOR WELD IS NOT PERFECT";
+			puts "THERE ARE $count TEMPORARY NODE(S) ARE ADD"
+		} else {
+			puts "THE EQUIVALENCE FOR WELD IS GOOD";
+		}
+	puts "==========FINISHED=========================="
+}
+CheckWeldEquivalence
