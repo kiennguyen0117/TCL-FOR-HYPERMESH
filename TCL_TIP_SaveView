@@ -1,0 +1,3 @@
+set label1 [hm_getstring "Label=" "Please specify the name of VIEW"];
+
+*saveviewmask $label1;
