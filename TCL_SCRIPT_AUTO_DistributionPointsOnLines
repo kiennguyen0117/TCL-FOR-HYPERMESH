@@ -1,0 +1,274 @@
+proc TagetElemOnMonolith {TargetDiameter} {
+
+	if {$TargetDiameter < 190.5} {
+	
+		set numOfElems 144;
+		
+	
+	} elseif {$TargetDiameter < 240.3} {
+	
+		set numOfElems 180;
+		
+	} else {
+	
+		set numOfElems 216;
+	
+	}
+	return $numOfElems;
+}	
+proc TagetElemOnPipe {TargetDiameter} {
+
+	if {$TargetDiameter < 76.2} {
+	
+		set numOfElems 60;
+		
+	
+	} elseif {$TagetElemOnPipe < 101.6} {
+	
+		set numOfElems 72;
+		
+	} else {
+	
+		set numOfElems 96;
+	
+	}
+	return $numOfElems;
+}	
+proc FindDiameter {} {
+
+	*createmarkpanel line 1 "select line to define Diameter"
+
+	set lineId [hm_getmark line 1]
+
+	*findmark line 1 1 0 point 0 2
+
+	set pointId [hm_getmark point 2]
+
+	*createmark line 1 $lineId
+
+	*createbestcirclecenternode lines 1 0 1 0
+	 
+	*clearmarkall 1; *clearmarkall 2;
+
+	*createmarklast nodes 1
+
+	set nodeId1 [hm_getmark nodes 1]; #get first node id
+
+	*createmark point 1 [lindex $pointId 0]
+
+	*nodecreateatpointmark 1
+
+	*clearmarkall 1; *clearmarkall 2;
+
+	*createmarklast nodes 1
+
+	set nodeId2 [hm_getmark nodes 1]; #get second node id
+
+	puts $nodeId1; puts $nodeId2;
+
+	set R [hm_getdistance nodes $nodeId1 $nodeId2 0]; # Meassure distance to nodes
+
+	set Diameter [expr {[lindex $R 0]*2}]
+
+	return $Diameter;
+}
+
+*clearmarkall 1; *clearmarkall 2;
+proc sumOfList {expectedList} {
+	
+	
+	set total 0;
+	foreach id $expectedList {
+		set total [expr {$total + $id}];
+	
+	}
+	return $total;
+}
+proc MaxElemOfList {expectedList} {
+	set max 0;
+	foreach elem $expectedList {
+		if {$max <$elem} {
+			set max $elem;
+		}
+	}
+	return $max;
+}
+proc GetIndiceOfMaxElem {expectedList} {
+	set tempMax 0;
+	set k 0;
+	for {set i 0} {$i< [llength $expectedList]} {incr i} {
+		set temp [lindex $expectedList $i];
+		if {$tempMax < $temp} {
+			set tempMax $temp;
+			set k $i;
+		}
+	}
+	return $k;
+}
+proc GetIndiceceOfMinElem {expectedList} {
+	set min 10000;
+	set k 0;
+	for {set i 0} {$i < [llength $expectedList]} {incr i} {
+		set temp [lindex $expectedList $i];
+		if {$temp < $min} {
+			set min $temp;
+			set k $i;
+		}
+	}
+	return $k;
+}
+proc GetIndiceOfValue {expectedList value} {
+	set k 0;
+	for {set i 0} {$i <[llength $expectedList]} {incr i} {
+		if {$value == [lindex $expectedList $i]} {
+			set k $i;
+			break;
+		}
+	
+	}
+	
+	return $k;
+}
+set Diameter [FindDiameter];
+set totalElems [TagetElemOnPipe $Diameter];
+set elemSize [expr {3.141*$Diameter/$totalElems}];
+
+
+
+
+
+*createlistbypathpanel lines 1 "select all line by path";
+
+
+set lineId [hm_getlist line 1];
+
+# GET LENGTH OF LINES
+set lineLength ""
+foreach id $lineId {
+	lappend lineLength [hm_linelength $id];
+}
+
+# GET INITIAL NUMBER OF ELEMS ON EACH LINE
+
+	set elemDensity "";
+	set elemSizeOfLine "";
+	#set flag 0; # To check the small edge which smaller than elemSize 
+	set indiceOfSmallEdges "";
+	for {set i 0} {$i < [llength $lineLength]} {incr i} {
+		set temp [expr {[lindex $lineLength $i]/$elemSize}];
+
+		
+		if {$temp <1} {
+			set temp 1;
+			lappend indiceOfSmallEdges $i;
+
+		} else {
+			set temp [expr {round($temp)}];
+			if {$temp > 3} {
+			
+				if {[expr {$temp%2}]==1} { incr temp;}
+			}
+		}
+	
+		
+
+		
+		lappend elemSizeOfLine [expr {[lindex $lineLength $i]/ $temp}];
+		
+		lappend elemDensity $temp;
+	}
+# GET LINE IDS OF LINES WHICH ARE NEEDED TO BE OPTIMIZED, GET DENSITY OF THOSE LINES
+		set optimizedLineIds $lineId;
+		set optimizedElemDensity $elemDensity;
+		set optimizedElemSizeOfLine $elemSizeOfLine;
+		set optimizedLineLength $lineLength;
+		if {[llength $indiceOfSmallEdges]!=0} {
+			foreach indice $indiceOfSmallEdges {
+			
+				set lineIdOfSmallEdge [lindex $lineId $indice]; #get Id VALUE
+				set idInOptmizedList [GetIndiceOfValue $optimizedLineIds $lineIdOfSmallEdge];
+				
+				foreach id $optimizedLineIds {
+					
+					if {$lineIdOfSmallEdge == $id} {
+						
+						set optimizedLineIds [lreplace $optimizedLineIds $idInOptmizedList [expr {$idInOptmizedList +1}] [lindex $optimizedLineIds [expr {$idInOptmizedList + 1}]]];
+						
+						set optimizedElemDensity [lreplace $optimizedElemDensity $idInOptmizedList [expr {$idInOptmizedList +1}] [lindex $optimizedElemDensity [expr {$idInOptmizedList + 1}]]];
+						set optimizedElemSizeOfLine [lreplace $optimizedElemSizeOfLine $idInOptmizedList [expr {$idInOptmizedList +1}] [lindex $optimizedElemSizeOfLine [expr {$idInOptmizedList + 1}]]];
+						set optimizedLineLength [lreplace $optimizedLineLength $idInOptmizedList [expr {$idInOptmizedList +1}] [lindex $optimizedLineLength [expr {$idInOptmizedList + 1}]]];
+						
+
+						break;
+					}
+					
+				}
+			}
+		}
+			puts "The process to transfer is GOOD";	
+# CHECK NUMBER OF SMALL EDGES AND SET INTERVAL
+if {1} {
+		set interval 0;
+		if {[expr {[llength $indiceOfSmallEdges] %2}] == 0} {
+			set interval 2;
+		} else {
+			set interval 1;
+		}
+		puts "Set INTERVAL is GOOD";
+}
+#set interval 1;
+# OPTIMIZE ELEM DENSITY ON EACH LINE
+
+	set tempTotal [sumOfList $optimizedElemDensity];
+	set optimizedTotal [expr {$totalElems - [llength $indiceOfSmallEdges]}];
+
+
+	while {$tempTotal!=$optimizedTotal} {
+		set tempTotal [sumOfList $optimizedElemDensity];
+		puts $tempTotal;
+		puts $optimizedElemDensity;
+		puts $optimizedElemSizeOfLine;
+		
+		if {$tempTotal < $optimizedTotal} {
+			# increase elemDensity elems at maximun size to 2 unit
+			#set maxSize [MaxElemOfList $elemSizeOfLine];
+			set k [GetIndiceOfMaxElem $optimizedElemSizeOfLine];
+			set increasedValue [expr {[lindex $optimizedElemDensity $k] + $interval}];
+			lset optimizedElemDensity $k $increasedValue;
+			set reducedSize [expr {[lindex $optimizedLineLength $k]/$increasedValue}];
+			lset optimizedElemSizeOfLine  $k $reducedSize;	
+		}
+		if {$tempTotal > $optimizedTotal} {
+			# increase elemDensity elems at maximun size to 2 unit
+			
+			for {set i 0} {$i <[llength $optimizedElemSizeOfLine]} {incr i} {
+				
+				set k [GetIndiceceOfMinElem $optimizedElemSizeOfLine];
+			# CHECK IF DENSITY IS TOO SMALL
+				if {[lindex $optimizedElemDensity $k] < 7} {
+					lset optimizedElemSizeOfLine $k 100;
+				}
+			}
+			
+			set k [GetIndiceceOfMinElem $optimizedElemSizeOfLine];
+			
+			set reducedValue [expr {[lindex $optimizedElemDensity $k]- $interval}];
+			lset optimizedElemDensity $k $reducedValue;
+			set increasedSize [expr {[lindex $optimizedLineLength $k]/$reducedValue}];
+			lset optimizedElemSizeOfLine  $k $reducedValue;	
+		}
+		puts $optimizedElemDensity;
+		puts $optimizedElemSizeOfLine;
+		
+	}
+	puts "Optimize DENSITY is GOOD";
+# ADD POINT ON LINES WHICH ARE OPTIMIZED
+for {set i 0} {$i< [llength $optimizedElemDensity]} {incr i} {\
+	set temp [lindex $optimizedElemDensity $i];
+	set numOfNodes [expr { $temp -1}];
+	*createmark lines 1 [lindex $optimizedLineIds $i];
+	*edgesmarkaddpoints 1 $numOfNodes;
+	*clearmarkall 1; *clearmarkall 2;
+}
+
+
