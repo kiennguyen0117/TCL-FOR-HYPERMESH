@@ -1,0 +1,384 @@
+proc SensorWeld {} {
+	# FIND FACE FOR SENSOR
+	puts "=========WELD ALL SENSOR=================="
+	proc FaceFromSolid {{id 0} {entity_type components}} {
+
+	if {$id!=0} {
+		*createmark $entity_type 1 $id;
+		*findfaces $entity_type 1;
+	} else {
+		*createmarkpanel $entity_type 1 "Select solid entity";
+		set id [hm_getmark $entity_type 1];
+		*findfaces $entity_type 1;
+	}
+	
+	
+	
+	#set name [hm_getvalue $entity_type id=$id dataname=name];
+	
+	
+	#*clearmarkall 1;
+	#return $name;
+}
+	# CREATE SOURCE AND DESTINATION
+	proc CreateElemsForSensorWeld {sharedNodes {compsId ""} {twoElemsId ""} } {
+
+	if {[llength $twoElemsId] == 0} {
+		*createmarkpanel elems 1 "Select elems";
+		set twoElemsId [hm_getmark elems 1];
+	} else {
+		set twoElemsId $twoElemsId;
+	}
+	
+	
+	*clearmarkall 1;
+	# split elems of Pipe and Flange
+	foreach elems $twoElemsId {
+		set tempId [hm_getvalue elements id=$elems dataname=component.id];
+		if {$tempId == [lindex $compsId 0]} {
+			lappend shellElems $elems;
+		} else { lappend sensorElems $elems}
+	}
+	*clearmarkall 1;
+	
+	*createmark elems 1 $shellElems;
+	*findmark elems 1 1 1 nodes 0 2;
+	set tempNodes1 [hm_getmark nodes 2];
+	
+	
+	*createmark elems 1 $sensorElems;
+	*findmark elems 1 1 1 nodes 0 2;
+	set tempNodes2 [hm_getmark nodes 2];
+	
+	
+	# kiem tra xem node nay co thuoc trong sharednodes hay ko
+	set j 0;
+	foreach node1 $tempNodes1 {
+		set k 0;
+		foreach node2 $sharedNodes {
+			if { $node1 == $node2} {
+				incr k;
+				break;
+			}
+		}
+		if {$k == 0} {
+			lappend shellNodes $node1;
+			incr j;
+		}
+		if {$j==2} { break;}
+	}
+	
+	set j 0;
+	foreach node1 $tempNodes2 {
+	
+		set k 0;
+		foreach node2 $sharedNodes {
+			if { $node1 == $node2} {
+				incr k;
+				break;
+			}
+		}
+		if {$k == 0} {
+			lappend sensorNodes $node1;
+			incr j;
+		}
+		if {$j==2} { break;}
+	}
+	
+	eval *createmark nodes 1 $tempNodes1;
+	eval *createmark nodes 2 $tempNodes2;
+	
+	*markintersection nodes 1 nodes 2;
+	
+	set twoShareNodes [hm_getmark nodes 1];
+	
+	
+	set tria1 {0 0 0}; set tria2 {0 0 0};
+		set node1 [lindex $sensorNodes 0];
+		set maxDistance 0;
+		foreach node2 $shellNodes {
+			set temp [NodeToNodeDistance $node1 $node2];
+			if { $temp > $maxDistance } {
+				set maxDistance $temp;
+				lset tria1 0 $node1; lset tria2 2 $node2;
+			}
+		}
+		set node1 [lindex $sensorNodes 1];
+		set maxDistance 0;
+		foreach node2 $shellNodes {
+			set temp [NodeToNodeDistance $node1 $node2];
+			if { $temp > $maxDistance } {
+				set maxDistance $temp;
+				lset tria1 2 $node2; lset tria2 0 $node1;
+			}
+		}
+		
+		set node1 [lindex $sensorNodes 0];
+		set minDistance 100;
+		foreach node2 $twoShareNodes {
+			set temp [NodeToNodeDistance $node1 $node2];
+			if { $temp < $minDistance } {
+				set minDistance $temp;
+				lset tria1 1 $node2;
+			}
+		}
+		
+		foreach node $twoShareNodes {
+			if {$node != [lindex $tria1 1]} {
+				lset tria2 1 $node;
+			}
+		}
+		
+		
+		
+		TriaAdvanced $tria1; TriaAdvanced $tria2;
+}
+	# GET DISTANCE
+	proc NodeToNodeDistance {{node1Id 0} {node2Id 0}} {
+		if {$node1Id==0 || $node2Id==0} {
+			*createlistpanel nodes 1 "Select 2 node";
+			set nodes(nodeIdList) [hm_getlist nodes 1];
+		} else {
+			set nodes(nodeIdList) "$node1Id $node2Id";
+		}
+			set nodes(coordinate1) [hm_getvalue nodes id=[lindex $nodes(nodeIdList) 0] dataname=coordinates];
+			set nodes(coordinate2) [hm_getvalue nodes id=[lindex $nodes(nodeIdList) 1] dataname=coordinates];
+			
+			set x1 [lindex $nodes(coordinate1) 0]; set x2 [lindex $nodes(coordinate2) 0];
+			set y1 [lindex $nodes(coordinate1) 1]; set y2 [lindex $nodes(coordinate2) 1];
+			set z1 [lindex $nodes(coordinate1) 2]; set z2 [lindex $nodes(coordinate2) 2];
+			
+			set temp1 [expr {$x1-$x2}];
+			set temp2 [expr {$y1-$y2}];
+			set temp3 [expr {$z1-$z2}];
+			
+			set distance [expr sqrt($temp1*$temp1 + $temp2*$temp2 + $temp3*$temp3)];
+			return $distance;
+	}
+	# CREATE TRIA
+	proc TriaAdvanced {idList} {
+
+			
+			set nodes $idList;
+			eval *createlist nodes 2 $nodes;
+			*createelement 103 1 2 1;
+			*clearmarkall 1; *clearmarkall 2;
+	}
+#===============================================================================================================================
+#===============================================================================================================================
+	# GET SENSOR NAMES AND IDS
+	if {1} {
+	set var1_AllName [hm_entitylist comp name];
+	
+	
+	set var4_sensorName {};
+	
+	foreach name $var1_AllName {
+		
+		
+		if {[regexp -all {SENSOR} $name temp]} {
+			lappend var4_sensorName $name;
+		}
+	}	
+	set var5_sensorId {};		#	GET ALL SENSOR IDS
+	
+	foreach name $var4_sensorName {
+		lappend var5_sensorId [hm_getvalue comp name=$name dataname=id]
+	}
+	
+}	
+	# FIND ALL SHARED NODES
+	if {1} {
+	
+	*clearmarkall 1; *clearmarkall 2;
+
+	*displaycollectorwithfilter components "all" "" 1 0
+	
+	*createmark comp 1 "all";
+			
+	*findbetween nodes components 1 0 0 2; # SAVE SHARED NODES TO MARK 2
+			
+	set nodeAll [hm_getmark nodes 2];
+	}
+	# WELDING PROCESS
+	foreach id $var5_sensorId {
+		# ISOLATE ELEM FOR WELD
+		if {1} {
+			# CREATE FACE FOR SENSOR AND GET FACE ID;
+				# CHECK THE EXISTANCE OF PSO_WELD COMPONENT
+				if {1} {
+					# CREATE A TEMPORARY COMPONENTS
+						if {[hm_entityinfo exist comp ^faces -byname]} {
+							*facesdelete;
+						}
+				}
+				FaceFromSolid $id;
+				*createmark comp 1 "^faces";
+				set faceId [hm_getmark comp 1];
+			# HIDE COMPONENT SENSOR
+				*createmark comp 1 $id;
+				*maskentitymark comp 1;		
+			# FIND ALL NODES OF COMPONENT "^face"
+				*createmark nodes 1 "by comp id" $faceId;
+				set nodeFace [hm_getmark nodes 1];
+			# GET ALL SHARED NODES WITH COMP WHICH IS ATTACHED WITH SENSOR
+				set sharedNode {};
+				foreach node $nodeFace {	
+					if {[lsearch $nodeAll $node] != -1} {
+						lappend sharedNode $node;	
+					}
+				}	
+			# ISOLATE ELEMENTS WHICH IS ATTACHED TO THOSE NODES
+				eval *createmark nodes 1 $sharedNode;
+				*findmark nodes 1 1 1 elems 0 2;
+				set initialElem [hm_getmark elems 2];
+				
+				# CHECK IF THE SENSOR IS WELDED OR NOT
+				if {1} {
+					
+					set tempList {};
+					foreach elem $initialElem {
+						set temp [hm_getvalue elem id=$elem dataname=collector.name];
+						if {[lsearch $tempList $temp] == -1} {
+							lappend tempList $temp;
+						}
+					}
+					if {[llength $tempList] > 3} {
+						continue;
+					}
+				}
+					
+				
+				*clearmarkall 1; *clearmarkall 2;
+				eval *createmark elems 1 $initialElem;
+				*isolateonlyentitybymark  1;
+				hm_viewfit
+			# HIDE COMPONENT SENSOR
+				*createmark comp 1 $id;
+				*maskentitymark comp 1;
+		
+			# ISOLATE THE FINAL TIME
+			
+			
+			*createmarkpanel elems 1 "select  2 elems";
+			set twoElem [hm_getmark elems 1];
+			*appendmark elems 1 "by face";
+			set EALL [hm_getmark elem 1];
+			*isolateonlyentitybymark  1;
+			*clearmarkall 1; *clearmarkall 2;
+			
+			
+		}
+		# CREATE A TEMPORARY COMPONENTS	
+		if {1} {
+		# CREATE A TEMPORARY COMPONENTS
+			if {[hm_entityinfo exist comp TempComponent -byname]} {
+				*createmark comp 1 "TempComponent";
+				*deletemark comp 1;
+				*createentity comps name=TempComponent;
+				
+				#*currentcollector components "TempComponent";
+			} else {
+				*createentity comps name=TempComponent;
+				#*currentcollector components "TempComponent";
+			}
+	}	
+		# GET REMAIN COMP ID
+		if {1} {
+			set shellId "";
+			foreach elem $EALL {
+				set temp [hm_getvalue elements id=$elem dataname=component.id];
+				if {$temp != $faceId} {
+					set shellId $temp;
+					break;
+				}			
+			}	
+		# CREATE SOURCE AND DESTIATION
+			set compId [list $shellId $faceId]
+			CreateElemsForSensorWeld $sharedNode $compId $twoElem;
+	}
+		# CREATE SOURCE, DESTIATION AND ALONG ELEMS
+		if {1} {
+		# create SOURCE
+			*clearmarkall 1; *clearmarkall 2;
+			*createmark elems 1 "by comp" TempComponent;
+			set elemSource [lindex [lsort -increasing [hm_getmark elems 1]] end];
+		# Create DESTINATION
+			set elemDestination [lindex [lsort -increasing [hm_getmark elems 1]] end-1];
+			set alongElemsSmall $twoElem;
+			eval *createmark elems 1 $EALL;
+			eval *createmark elems 2 $alongElemsSmall;
+			set alongElemsBig [hm_getmark elems [*markdifference elems 1 elems 2]];
+			*clearmarkall 1; *clearmarkall 2;
+	}
+		# SOLID MAP
+		if {1} {
+			#========================================================
+			#========================================================
+			*solidmap_begin 0
+			*solidmap_prepare_usrdataptr "SOURCE" 8
+			eval *createmark elements 1 $elemSource
+			*solid_prepare_entitylst elements 0
+			*solidmap_prepare_usrdataptr "DEST" 8
+			eval *createmark elements 1 $elemDestination
+			*solid_prepare_entitylst elements 0
+			*solidmap_prepare_usrdataptr "ALONG" 15
+			eval *createmark elems 1 $alongElemsSmall;
+	
+			*solid_prepare_entitylst elements 0
+			*solidmap_end 8322 10 0 0
+			
+			*clearmarkall 1; *clearmarkall 2;
+			
+			#========================================================
+			#========================================================	
+			*solidmap_begin 0
+			*solidmap_prepare_usrdataptr "SOURCE" 8
+			eval *createmark elements 1 $elemSource
+			*solid_prepare_entitylst elements 0
+			*solidmap_prepare_usrdataptr "DEST" 8
+			eval *createmark elements 1 $elemDestination
+			*solid_prepare_entitylst elements 0
+			*solidmap_prepare_usrdataptr "ALONG" 15	
+			eval *createmark elems 1 $alongElemsBig;
+			*solid_prepare_entitylst elements 0
+			*solidmap_end 8322 10 0 0
+			
+			
+			*createmark comp 1 "TempComponent";
+			*deletemark comp 1;
+			*facesdelete;
+			*clearmarkall 1; *clearmarkall 2;
+			continue;
+	}	
+		
+	}
+}
+#===============================================================================================================================
+#===============================================================================================================================
+# EXCUTE THE WELDING PROCESS AND ORGANIZE ELEMS TO PSO_WELD COMP;
+	if {1} {
+		*clearmarkall 1; *clearmarkall 2;
+		SensorWeld;
+		puts "==========FINISHED=========================="
+		*clearmarkall 1; *clearmarkall 2;
+		# CHECK THE EXISTANCE OF PSO_WELD COMPONENT
+		if {1} {
+			# CREATE A TEMPORARY COMPONENTS
+				if {[hm_entityinfo exist comp PSO_WELD -byname]} {
+					*currentcollector components "PSO_WELD";
+				} else {
+					*createentity comps name=PSO_WELD;
+				}
+		}
+		# MOVE ELEMS TO WELD COMP;
+		if {1} {
+			*createmark elem 1 "by comp" "solidmap";
+			if {[hm_marklength elem 1]} {
+			*movemark elements 1 "PSO_WELD";
+			}
+		}
+		*clearmarkall 1; *clearmarkall 2;
+		*displaycollectorwithfilter components "all" "" 1 0;
+		*unmaskall2;
+	}
