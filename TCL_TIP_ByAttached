@@ -1,0 +1,11 @@
+proc ByAtached {} {
+
+	set entityType [hm_getmarkentitytypes 1];
+
+	*appendmark $entityType 1 "by attached"
+
+	hm_highlightmark $entityType 1 h;
+	
+}
+
+ByAtached;
