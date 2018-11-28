@@ -1,0 +1,60 @@
+# CHECK EQUIVALENCE FOR 1D ELEMS
+	# FIND ALL SHARED NODE
+	proc CheckEquivalenceFor1DElem {} {
+		puts "=========CHECK 1D EQUIVALENCE=================="
+		*nodecleartempmark
+		*clearmarkall 1; *clearmarkall 2;
+		
+		*createmark comps 1 "all";
+		
+		*findbetween nodes components 1 0 0 2; #SAVE SHARED NODES TO MARK 2
+		set nodeAll [hm_getmark nodes 2];
+		
+		::macroShowOnly0d1dELEMS
+		
+		*createmark node 1 "displayed";
+		
+		set targetNode [hm_getmark node 1]
+		set num [hm_marklength nodes 1];
+		#puts $num;
+		set refNode [hm_getmark nodes 1];
+		
+		*markintersection nodes 1 nodes 2;
+		
+		set checkNode [hm_getmark nodes 1]
+		set a [hm_marklength nodes 1];
+		#puts $a;
+		
+		set notSharedNodes {};
+		if {$a != $num} {
+			
+			if {0} {
+				foreach node $refNode {
+					if {[lsearch $nodeAll $node] == -1} {
+						lappend notSharedNodes $node
+					}
+				}
+			}
+			
+			eval *createmark nodes 1 $targetNode;
+			eval *createmark nodes 2 $checkNode;
+			*marknotintersection nodes 1 nodes 2;
+			
+			set notSharedNodes [hm_getmark nodes 1]
+			set notSharedNodes [hm_getmark nodes 1]
+			
+			puts "[llength $notSharedNodes] NODE/NODES IS/ARE NOT EQUVALENCED";
+			
+			eval *createmark node 1 $notSharedNodes
+			
+			*nodemarkaddtempmark 1;
+		} else {
+			puts "Equivalence for 1D elems is GOOD";
+		}
+		
+		::macroEVERYTHINGON
+		
+		puts "==========FINISHED=========================="
+	}
+	CheckEquivalenceFor1DElem;
+	*clearmarkall 1; *clearmarkall 2;
