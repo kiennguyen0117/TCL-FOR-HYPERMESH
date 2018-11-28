@@ -1,0 +1,18 @@
+proc ByFace1 {{id 1}} {
+
+		#
+	
+		set entityType [hm_getmarkentitytypes 1];
+		
+		
+
+		*appendmark $entityType 1 "by face"
+		
+		
+			hm_highlightmark $entityType 1 h;
+		
+	
+	
+}
+
+ByFace1;
