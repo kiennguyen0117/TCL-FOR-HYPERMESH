@@ -1,0 +1,58 @@
+# QC BEFORE DELIVERY
+
+	# UPDATE ELEMENT TYPE
+		# QUAD: S4R
+		# HEX : C3D8I
+		# TETRA: C3D4
+		# PENTAX: C3D6
+			if {1} {
+				
+			}
+			
+	# CHECK EMPTY COMPS
+			if {1} {
+				*EntityPreviewEmpty components 1;
+				if [hm_marklength comp 1] {
+					*deletemark comp 1;
+				}
+			}
+			
+	# EXPORT FILE WIHT NAME "FEM + DATE"
+			if {1} {
+				*createmark elements 1
+				*clearmark elements 1
+				*createmark groups 1
+				*clearmark groups 1
+				*createmark systems 1
+				*clearmark systems 1
+				*retainmarkselections 0
+				*createmark elements 1
+				*clearmark elements 1
+				*createmark groups 1
+				*clearmark groups 1
+				*createmark systems 1
+				*clearmark systems 1
+				*retainmarkselections 0
+				*createstringarray 3 "HMCOMMENTS_SKIP" "HMBOMCOMMENTS_XML" "EXPORTIDS_SKIP"
+				hm_answernext yes
+				
+				set a [pwd];
+				set systemTime [clock seconds];
+				set k1 [clock format $systemTime -format %D];
+				set k1 [split $k1 "/"];
+				
+				set k2 [clock format $systemTime -format %H];
+				set k3 [clock format $systemTime -format %M];
+				set k4 [clock format $systemTime -format %S];
+				
+				set k5 [join [list $k2 $k3 $k4] "_"]
+				
+				set userName [join [list [string toupper $env(USERNAME)] "_"] ""];
+				set mainFileName [join [list  $userName FEM_ [lindex $k1 2] [lindex $k1 1] [lindex $k1 0] "_" $k5 ".inp" ] ""];
+				
+				
+				set fullPath [join [ list $a $mainFileName ] "/"];
+				*feoutputwithdata "C:/Program Files/Altair/2017/templates/feoutput/abaqus/standard.3d" $fullPath  0 0 0 1 3;
+
+			}
+	#
