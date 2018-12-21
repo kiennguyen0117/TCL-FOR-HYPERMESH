@@ -1,0 +1,36 @@
+*createmark comp 1 "displayed";
+set compId [hm_getmark comp 1];
+
+foreach id $compId {
+	*createmark surf 1 "by comp id" $id;
+	set a [hm_getgeometricthinsolidinfo surface 1];
+	
+	set b [lindex $a 0];
+	
+	#set b [format %0.2f [lindex $a 0]];
+	#puts "Comp ID: $id	[format %0.2f [lindex $a 0]]";
+	set c [format %0.1f [lindex $b 0]];
+	
+	#puts "Comp ID: $id	$c";
+	
+	# GET NAME FROM COMP ID;
+	set name [hm_getvalue comp id=$id dataname=name];
+	# SPLIT TO GET THICKNESS FOR NAMMING
+	set d [split $c "."];
+
+	set name2 "PSH";
+	lappend name2 $name "T" [lindex $d 0] [lindex $d 1];
+	set name2 [join $name2 "_"];
+	puts $name2;
+	
+	
+	*createmark surf 1 "by comp id" $id;
+	*midsurface_extract_10 surfaces 1 -1 0 1 1 3 0 20 0 0 10 0 10 -2 undefined 0 0 1;
+	
+	*createmark comp 1 "Middle Surface";
+	set midId [hm_getmark comp 1];
+	*setvalue comps id=$midId name=$name2;
+	
+}
+
+
