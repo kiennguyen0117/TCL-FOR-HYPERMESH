@@ -1,0 +1,90 @@
+#include <iostream>
+#include <direct.h>
+#include <string>
+
+#include <experimental/filesystem>
+#include <Windows.h>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <iomanip>
+
+
+using namespace std;
+
+std::string ExePath() {
+	char buffer[MAX_PATH];
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+	return std::string(buffer).substr(0, pos);
+
+}
+
+
+int main() {
+	string path = ExePath();
+
+	// get path of mesh file
+	string meshFilePath = path + "\\mesh.inp";
+
+	int i = { 0 }; //for spliting file
+
+	int count(0);
+
+	ifstream meshLine(meshFilePath);
+
+	//ofstream outMeshLine(meshFilePath);
+
+	if (meshLine ) {
+		string line;
+		//string kien;
+
+		string outFilePath;
+		ofstream outFileStream[1000];
+
+		//vector<ofstream> outFileStream;
+		while (getline(meshLine, line)) {
+			if (count == 0) {
+
+				outFilePath = path + "\\" + to_string(i) + ".txt";
+				outFileStream[i].open(outFilePath);
+				//ofstream tempOutFileStream.open(outFilePath);
+				//outFileStream.push_back(temOutFileStre);
+			}
+			else if ((count % 100000) == 0 && count!=0) {
+					if (outFileStream[i].is_open()) {
+					outFileStream[i].close();
+					}
+				
+					++i;
+
+				
+					//cout << i << endl;
+					outFilePath = path + "\\" + to_string(i)+".txt";
+		
+					outFileStream[i].open(outFilePath);
+
+					//cout << outFileStream.is_open() << endl;
+
+			}
+
+			if (outFileStream[i].is_open()) {
+				outFileStream[i] << line << endl;
+				++count;
+			}
+			else {
+				cout << "ERROR" << endl;
+				break;
+			}
+		}
+		
+		
+		
+		
+	}
+
+
+
+
+	return 0;
+}
